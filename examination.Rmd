@@ -7,4 +7,19 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+library(sf)
+library(ggplot2)
 ```
+
+```{r}
+people <- read_csv("People.csv")
+income <- read_csv("income.csv")
+creatives <- read_xls("creativeclass200711.xls")
+
+inner_join(creatives, income, by = "County")
+
+inner_join(creatives, income)
+```
+
