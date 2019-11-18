@@ -1,0 +1,64 @@
+---
+title: "youth_civil_ca"
+author: "Jeremy Ornstein"
+date: "10/29/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+library(sf)
+library(ggplot2)
+
+```
+
+```{r}
+people <- read_csv("People.csv")
+income <- read_csv("income.csv")
+creatives <- read_csv("creative_class_clean.csv")
+
+creatives$FIPS <- paste0("0", creatives$FIPS)
+
+inner_join(creatives, income, by = "County")
+
+inner_join(creatives, income)
+
+creative_income <- merge(creatives, income, by = "FIPS", all.x=TRUE)
+
+creative_people <- merge(creatives, people, by = "FIPS", all.x=TRUE)
+
+creative_people_income <- merge(creative_people, income, by = "FIPS", all.x=TRUE)
+
+creative_income %>% ggplot((aes(x = Creative2000S, PerCapitaInc))) + geom_point()
+
+creative_people %>% ggplot((aes(x = Bohemian2000S, NetMigrationRate1018))) + geom_point()
+
+creative_income %>% ggplot((aes(x = Creative2000S, PerCapitaInc))) + geom_point()
+
+creative_people %>% ggplot((aes(x = Bohemian2000S, NetMigrationRate1018))) + geom_point()
+
+creative_people%>% ggplot((aes(x = Creative2000S, Under18Num2010))) + geom_point()
+
+creative_income%>% ggplot((aes(x = Arts1990S, PerCapitaInc))) + geom_point()
+
+model <- lm(data = creative_people_income, formula = PerCapitaInc ~ Creative2000S + PopDensity2010)
+print(model)
+
+model <- lm(data = creative_people_income, formula = PerCapitaInc ~ Creative2000S)
+print(model)
+
+model <- lm(data = creative_people_income, formula = PerCapitaInc ~ PopDensity2010)
+print(model)
+
+creative_people_income %>% mutate(difference = Creative2000N - Creative2000S) %>%
+  ggplot((aes(x = PopDensity2010, y= difference))) + geom_point()
+
+change <- creative_people_income %>% mutate(difference = Creative2000N - Creative2000S)
+
+model <- lm(data = creative_people_income, formula = change$difference ~ PopDensity2010)
+print(model)
+```
+
+
