@@ -7,8 +7,11 @@
 #    http://shiny.rstudio.com/
 #
 
-library(shiny)
 library(tidyverse)
+library(readxl)
+library(sf)
+library(ggplot2)
+library(shiny)
 
 creative_people_income <- read_rds("creative_people_income.rds")
 
