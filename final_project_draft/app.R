@@ -13,6 +13,8 @@ library(sf)
 library(ggplot2)
 library(leaflet)
 library(shiny)
+library(gt)
+library(broom)
 
 creative_people_income <- read_rds("creative_people_income.rds")
 
@@ -59,7 +61,8 @@ ui <- fluidPage(
     ),
     
     tabPanel(
-      "Model"
+      "model",
+      plotOutput("Plot_Model")
     ))
     
     ), 
@@ -90,6 +93,12 @@ server <- function(input, output) {
                    addProviderTiles() %>% 
                    addMarkers(lng = map$lng, lat = map$lat, popup = map$County.x)
 })
+  
+  output$Table_Model <- render_gt({
+    regression <- creative_people_income %>%  
+      lm(formula = Creative2000S ~ metro03*PerCapitaInc) 
+    tidy(regression) %>% gt()
+  })
   
   output$Text <- renderText({"This data comes from studies done to find population and income, 
   stored in the Rural Atlas and other databases. 
