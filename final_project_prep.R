@@ -18,7 +18,10 @@ creative_income <- merge(creatives, income, by = "FIPS", all.x=TRUE)
 
 creative_people <- merge(creatives, people, by = "FIPS", all.x=TRUE)
 
-creative_people_income <- merge(creative_people, income, by = "FIPS", all.x=TRUE)
+creative_people_income <- merge(creative_people, income, by = "FIPS", all.x=TRUE) %>% 
+  mutate(metro93 = `metro 1993 definition (1=metro, 0=nonmetro)`) %>% 
+  mutate(metro03 = `metro 2003 definition (1=metro, 0=nonmetro)`) %>%
+  mutate(change = Creative2000N - Creative1990N)
 
 write_rds(creative_people_income, path = "final_project_draft/creative_people_income.rds")
 
