@@ -24,15 +24,41 @@ x_choices <- c("County" = "County.x",
                "Per Capita Income" = "PerCapitaInc", 
                "Migration Rate" = "NetMigrationRate1018")
 y_choices <- c("Share of Creative Class" = "Creative2000S",
-               "Change in Creative Class" = "difference")
+               "Change in Creative Class" = "difference",
+               "Per Capita Income" = "PerCapitaInc")
+
+
+
+regression <- creative_people_income %>%  
+  lm(formula = Creative2000S ~ metro03 + PerCapitaInc) 
+table_r <- tidy(regression) %>%
+  mutate(term = recode(term, 
+         '(Intercept)' = 'Intercept', 
+         'metro03' = 'Metro',
+         'PerCapitaInc' = 'Income',
+         'metro03:PerCapitaInc' = 'Both')) %>% 
+  select('Term' = term,
+         'Estimate' = estimate,
+         'Standard Error' = std.error,
+         'Fit' = statistic,
+         'P-Value' = p.value)
+
+topS_25_raw <- creative_people_income %>% 
+  arrange(desc(Creative2000S)) %>% 
+  select(Creative2000S, County.x, metro03, PerCapitaInc) %>%
+  head(25)
+
+topS_25 <- topS_25_raw %>% 
+  select('Share of Creative' = 'Creative2000S',
+         'County' = 'County.x',
+         'Metro' = 'metro03',
+         'Income' = 'PerCapitaInc')
+
+
 
 ui <- fluidPage(
   navbarPage(
-  "Jeremy's Pset",
-  tabPanel(
-    "Map",
-      leafletOutput("Map")
-    ),
+  "Impact of the American Creative Class",
   #tabsetPanel(type = "tabs", 
   tabPanel(
     "Graphs",
@@ -61,11 +87,20 @@ ui <- fluidPage(
     ),
     
     tabPanel(
-      "model",
-      plotOutput("Plot_Model")
+      "Regression Model",
+      gt_output("Table_Model"),
+      br(),
+      h4("Analysis")
     ))
     
     ), 
+  
+  tabPanel(
+    "Story",
+    gt_output("Story"),
+    br(),
+    h4("Analysis")
+  ),
 
   # I made a title for my map page and inserted a placeholder for my Plot
 
@@ -85,23 +120,27 @@ server <- function(input, output) {
             geom_smooth(method = "lm", se = TRUE) + 
             xlab("X Variable") + 
             ylab("Y Variable") + 
-            labs(title = "Relationship")
+            labs(title = "Relationship",
+                 caption = "Each graph shows the relationship between population, income, and creative class. 
+                 The steeper the blue line-- or line of best fit-- the greater the relationship. 
+                 Notice how 'metro' causes a single change, because the county can be only metro or not, 
+                 while 'income' has a wide range. Notice how there are strong relationships in regards to 'Share', 
+                 which is the measure of creative class at one time, relative to the relationships in regards to 'Change', 
+                 which is the measure of creative class over time.") 
     })
   
-  output$map <- renderLeaflet({
-    m <- leaflet(options = leafletOptions(dragging = TRUE)) %>%
-                   addProviderTiles() %>% 
-                   addMarkers(lng = map$lng, lat = map$lat, popup = map$County.x)
+  output$Story <- render_gt({
+    topS_25
 })
   
   output$Table_Model <- render_gt({
-    regression <- creative_people_income %>%  
-      lm(formula = Creative2000S ~ metro03*PerCapitaInc) 
-    tidy(regression) %>% gt()
+    table_r
   })
   
-  output$Text <- renderText({"This data comes from studies done to find population and income, 
-  stored in the Rural Atlas and other databases. 
+  output$Text <- renderText({"I'm Jeremy Ornstein, a first year student at Harvard University. I'm a poet, 
+  an actor, an R coder-- I'm creative! But I also recognize the need for 
+  This data comes from studies done by the USDA Economic Research Service, 
+  and the American Community Survey. 
   Our world isn't perfect, and we need more people who can imagine how to make things better. 
   This data represents how creative people relate to places, both their population density and income."
   })

@@ -12,6 +12,7 @@ library(readxl)
 library(sf)
 library(ggplot2)
 library(gt)
+library(broom)
 library(stargazer)
 
 ```
@@ -42,7 +43,7 @@ model <- lm(data = creative_people_income, formula = PerCapitaInc ~ metro03 + Cr
 
 regression <- creative_people_income %>%  
       lm(formula = Creative2000S ~ metro03*PerCapitaInc) 
- stargazer(regression)
+tidy(regression) %>% gt()
 
 ```
 
