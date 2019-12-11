@@ -5,31 +5,34 @@ library(leaflet)
 library(shiny)
 library(gt)
 library(broom)
+library(shinythemes)
 library(tidyverse)
 
-creative_people_income <- read_rds("creative_people_income.rds")
+creative_people_income <- read_rds("test.rds")
+
+creative_people_income_new <- read_rds("test.rds")
 
 # I read in my rds file. 
 
 x_choices <- c("County" = "County.x", 
-               "Metro" = "metro03", 
+               "Metro" = "metro_00", 
                "Share of Creative Class" = "Creative2000S", 
-               "Per Capita Income" = "PerCapitaInc", 
-               "Migration Rate" = "NetMigrationRate1018")
-y_choices <- c("Share of Creative Class" = "Creative2000S",
-               "Change in Creative Class" = "difference",
+               "Migration Rate" = "NetMigrationRate1018",
+               "Per Capita Income" = "PerCapitaInc")
+
+y_choices <- c( "Share of Creative Class" = "Creative2000S", 
                "Per Capita Income" = "PerCapitaInc")
 
 # Labelling these choices allowed me to neaten up my graphs later. 
 
 regression <- creative_people_income %>%  
-    lm(formula = Creative2000S ~ metro03 + PerCapitaInc) 
+    lm(formula = Creative2000S ~ metro_00 + PerCapitaInc) 
 table_r <- tidy(regression) %>%
     mutate(term = recode(term, 
                          '(Intercept)' = 'Intercept', 
-                         'metro03' = 'Metro',
+                         'metro_00' = 'Metro',
                          'PerCapitaInc' = 'Income',
-                         'metro03:PerCapitaInc' = 'Both')) %>% 
+                         'metro_00:PerCapitaInc' = 'Both')) %>% 
     select('Term' = term,
            'Estimate' = estimate,
            'Standard Error' = std.error,
@@ -40,7 +43,7 @@ table_r <- tidy(regression) %>%
 
 topS_25_raw <- creative_people_income %>% 
     arrange(desc(Creative2000S)) %>% 
-    select(Creative2000S, County.x, metro03, PerCapitaInc, TotalPopEst2018) %>%
+    select(Creative2000S, County.x, metro_00, PerCapitaInc, TotalPopEst2018) %>%
     head(25)
 
 # I arranged by creative and selected the first 25 rows with columns I wanted, to show in a table later 
@@ -49,17 +52,50 @@ topS_25_raw <- creative_people_income %>%
 topS_25 <- topS_25_raw %>% 
     select('Share of Creative' = 'Creative2000S',
            'County' = 'County.x',
-           'Metro' = 'metro03',
-           'Income' = 'PerCapitaInc',
-           'Population' = 'TotalPopEst2018')
+           'Metro' = 'metro_00')
+
+map_values2 <- creative_people_income_new %>% 
+  arrange(desc(Creative2000N)) %>% 
+  head(100) %>% 
+  select(Long, Lat)
+
+Map <- leaflet(data = map_values2) %>% 
+  addProviderTiles("Stamen.Toner", group = "Toner") %>% 
+  addMarkers(~Long, ~Lat)
+
 
 # Below, I began to build my page with a tabpanel that contained graphs, a page where users can manipulate a sidebar to 
 # See the relationship between different variables, which are shown in plots. I also included a table that models the relationship 
 # In a few numbers, using the regression code from up above. Below the table I wrote several paragraphs to describe the table. 
 
-ui <- fluidPage(
+ui <- fluidPage(theme = shinytheme("superhero"),
     navbarPage(
         "Impact of the American Creative Class",
+        # This is the next panel, which summarizes the findings of the entire page in writing. 
+        tabPanel(
+          "Summary",
+          h2("Summary"),
+          h4("Richard Florida led the argument for the importance of the creative class. We define the creative class as those occupations 
+    in which workers must think up new ideas or things, including artistic projects. We exlude jobs like teachers, doctors, judges-- although these occupations 
+    require creative thinking, they are proportional to the population. Instead, we are measuring all of the extra creative work: people who are spending surplus 
+    energy to build a new world, slowly but surely."),
+    br(),
+    h4("The USDA Economic Research Service tested Florida's thesis, and agreed on the conclusions: 
+    the creative class of Americans tends to live in urban counties, and counties that correspond with high incomes.
+    The data trends shown in the graph and regression model affirm these claims. As income goes up, creative class goes up. If a county is a metro area, creative 
+    class goes up. Migration into a county corresponds with higher creative class, as well. Finally, in counties with higher income, creative class has increased faster."),
+    br(),
+    h4("Affirmed by the Story tab, and included in the Florida thesis, is the claim that the creative class concentrates in places of natural beauty, 
+    even if those places are not urban. Noted in the Story tab but unmentioned in the ERS thesis is the impact of government investment on creative class; 
+    Los Alamos and counties close to D.C demonstrate that military investment draws high numbers of members of the creative class."),
+    br(),
+    h4("The Map tab reveals just how concentrated are the members of the creative class, clustering around big cities along the coasts. Although several high-creative counties 
+       are closer to the heartland, these are also lower on the list."),
+    br(),
+    h4("The better we can understand why the creative class concentrates here or there, 
+       the better we can reckon with how to develop creative capacity in every corner of the nation.")
+        ),
+        
         #tabsetPanel(type = "tabs", 
         tabPanel(
             "Relationships",
@@ -86,9 +122,7 @@ ui <- fluidPage(
                             h5("Each graph shows the relationship between population, income, and creative class. 
                                The steeper the blue line-- or line of best fit-- the greater the relationship. 
                                Notice how 'metro' causes a single change, because the county can be only metro or not, 
-                               while 'income' has a wide range. Notice how there are strong relationships in regards to 'Share', 
-                               which is the measure of creative class at one time, relative to the relationships in regards to 'Change', 
-                               which is the measure of creative class over time.")
+                               while 'income' has a wide range.")
                         )
                     )
                 ),
@@ -133,10 +167,15 @@ ui <- fluidPage(
        that a community created for the purpose of top-secret engineers would have a very high proportion of engineers. And who could 
        be called more creative than the minds who introduced to society the tremendous and terrifying power of nuclear energy?")
         ),
-        # This is the next panel, which summarizes the findings of the entire page in writing. 
+        
         tabPanel(
-            "Summary",
-            textOutput("Text1")
+          "Map",
+          leafletOutput("Map"),
+          br(),
+          h4("The top 100 counties by creative class, in numbers rather than share, are shown on the map. Observe how they are centered around major cities, clustered on the coasts.
+          These counties together hold 16 million members of the creative class. 
+             And, there are half as many members of the creative class in these 100 counties, as there are in the 
+             rest of the 3,000 counties combined! In other words-- the American creative class is highly concentrated.")
         ),
         
         # This is the final panel, which offers information about me and the data sources. 
@@ -169,22 +208,16 @@ server <- function(input, output) {
         table_r
     })
     
+    output$Map <- renderLeaflet({
+      Map
+    })
+    
     output$Text <- renderText({"I'm Jeremy Ornstein, a first year student at Harvard University. I'm a poet, 
   an actor, an R coder-- I'm creative! But I'm also a citizen, and my mind and heart are on the question of the climate crisis.
   How do we transform our society to decarbonize, while also weave social connections between one another? I'm excited to think about 
   how we can build our capacity of artists and engineers in EVERY corner of our nation, to take on these big questions to create a better world. 
   This data comes from studies done by the USDA Economic Research Service, and the American Community Survey. It's inspired by the work of Richard Florida 
   on the American creative class. You can reach me at jornstein@college.harvard.edu."
-    })
-    
-    output$Text1 <- renderText({"Richard Florida led the argument for the importance of the creative class, which is 
-    defined as occupations in which workers must think up new ideas or things, including artistic projects. The USDA Economic Research Service tested 
-    Florida's thesis, and agreed on the conclusions: the creative class tends towards urban areas, and corresponds with economic growth.
-    The data trends shown in the graph and regression model affirms these claims. Also in the Florida and ERS thesis, and affirmed here, is the claim 
-    that creative class concentrate in places of natural beauty, even if those places are not urban. Unmentioned in the Florida and ERS argument is the 
-    impact of government investment on creative class. Los Alamos and counties close to D.C demonstrate that military investment draws high numbers of 
-    members of the creative class. The better we can understand why the creative class concentrates here or there, the better we can reckon with how to 
-    develop creative capacity in every corner of the nation."
     })
 }
 
